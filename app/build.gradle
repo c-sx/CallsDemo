@@ -28,5 +28,5 @@ dependencies {
     implementation files('libs/gson-2.8.5.jar')
     implementation files('libs/okhttp-3.12.1.jar')
     implementation 'com.squareup.okio:okio:1.15.0'
-}
 
+}

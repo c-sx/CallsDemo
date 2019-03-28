@@ -1,10 +1,13 @@
 package com.example.a19633.callsdemo;
 
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -22,6 +25,10 @@ import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private OkHttpClient client = new OkHttpClient();
+
+    public static final MediaType JSON
+            = MediaType.get("application/json; charset=utf-8");
+
     private Button btn_json;
     private Button btn_get;
     private Button btn_post;
@@ -31,25 +38,54 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView tv_gson;
     private LinearLayout linearLayout1;
     private LinearLayout linearLayout2;
+    /**
+     * get请求
+     */
     private static final int GET = 1;
+    /**
+     * post请求
+     */
+    private static final int POST = 2;
+    /**
+     * 导入gson
+     */
+    Gson gson = new Gson();
 
     private Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             switch (msg.what) {
-                case GET: {
-                    Gson gson = new Gson();
-                    Calls calls = gson.fromJson((String) msg.obj, Calls.class);
+                case GET:
+                    //获取数据
+//                    linearLayout1.setBackgroundColor(Color.parseColor("#eef7f2"));
+//                    linearLayout2.setBackgroundColor(Color.parseColor("#f1f0ed"));
+//                    tv_tips1.setText("Json内容为：");
+//                    tv_json.setText((String)msg.obj);
 
+                    //解析json数据
+                    Calls calls_get = gson.fromJson((String) msg.obj, Calls.class);
+
+                    //展示数据
                     linearLayout1.setBackgroundColor(Color.parseColor("#eef7f2"));
                     linearLayout2.setBackgroundColor(Color.parseColor("#f1f0ed"));
                     tv_tips1.setText("Json内容为：");
                     tv_json.setText((String) msg.obj);
                     tv_tips2.setText("Gson转化为：");
-                    tv_gson.setText(calls.toString());
-                }
-                break;
+                    tv_gson.setText(calls_get.toString());
+                    break;
+                case POST:
+                    //解析json数据AQ
+                    Calls calls_post = gson.fromJson((String) msg.obj, Calls.class);
+
+                    //展示数据
+                    linearLayout1.setBackgroundColor(Color.parseColor("#eef7f2"));
+                    linearLayout2.setBackgroundColor(Color.parseColor("#f1f0ed"));
+                    tv_tips1.setText("Json内容为：");
+                    tv_json.setText((String) msg.obj);
+                    tv_tips2.setText("Gson转化为：");
+                    tv_gson.setText(calls_post.toString());
+                    break;
             }
         }
     };
@@ -84,6 +120,91 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 jsonPostByOkHttp();
                 break;
         }
+    }
+
+    /**
+     * get请求
+     *
+     * @param url 网络连接
+     * @return
+     * @throws IOException
+     */
+    private String get(String url) throws IOException {
+        Request request = new Request.Builder()
+                .url(url)
+                .build();
+
+        Response response = client.newCall(request).execute();
+        return response.body().string();
+    }
+
+    /**
+     * 使用get请求网络数据
+     */
+    private void getDataFromGet() {
+        new Thread() {
+            @Override
+            public void run() {
+                super.run();
+                try {
+                    String result = get("http://www.xinxianquan.xyz:8080/zhaqsq/call/calls");
+                    Log.e("TAG", result);
+                    Message msg = Message.obtain();
+                    msg.what = GET;
+                    msg.obj = result;
+                    handler.sendMessage(msg);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+
+    }
+
+    /**
+     * 使用post请求网络数据
+     */
+    private void getDataFromPost() {
+        new Thread() {
+            @Override
+            public void run() {
+                super.run();
+                try {
+                    String result = post("http://www.xinxianquan.xyz:8080/zhaqsq/user/login", "  \"{\\n\" +\n" +
+                            "                            \"    \\\"userName\\\":asdf,\\n\" +\n" +
+                            "                            \"    \\\"userPassword\\\":\\\"12345\\\",\\n\" +\n" +
+                            "                            \"}\"" +
+                            "");
+                    Log.e("TAG", result);
+                    Message msg = Message.obtain();
+                    msg.what = POST;
+                    msg.obj = result;
+                    handler.sendMessage(msg);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+
+    }
+
+    /**
+     * okhttp3的post请求
+     *
+     * @param url
+     * @param json
+     * @return
+     * @throws IOException
+     */
+    String post(String url, String json) throws IOException {
+        RequestBody body = RequestBody.create(JSON, json);
+        Request request = new Request.Builder()
+                .url(url)
+                .post(body)
+                .build();
+        Response response = client.newCall(request).execute();
+        return response.body().string();
+
     }
 
     //将json格式对象转化成字符串对象
@@ -173,8 +294,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 "    }\n" +
                 "}";
         //解析json数据
-        Gson gson = new Gson();
-
         Calls calls = gson.fromJson(json, Calls.class);
 
         //展示数据
@@ -187,49 +306,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void jsonGetByOkHttp() {
-        new Thread() {
-            @Override
-            public void run() {
-                super.run();
-
-                try {
-                    //获取数据
-                    String result = get("http://www.xinxianquan.xyz:8080/zhaqsq/call/calls");
-                    Message msg = Message.obtain();
-                    msg.what = GET;
-                    msg.obj = result;
-                    handler.sendMessage(msg);
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }.start();
+        getDataFromGet();
     }
+
 
     private void jsonPostByOkHttp() {
-
+        getDataFromPost();
     }
 
-    String get(String url) throws IOException {
-        Request request = new Request.Builder()
-                .url(url)
-                .build();
-
-        Response response = client.newCall(request).execute();
-        return response.body().string();
-    }
-
-    public static final MediaType JSON
-            = MediaType.parse("application/json; charset=utf-8");
-
-    String post(String url, String json) throws IOException {
-        RequestBody body = RequestBody.create(JSON, json);
-        Request request = new Request.Builder()
-                .url(url)
-                .post(body)
-                .build();
-        Response response = client.newCall(request).execute();
-        return response.body().string();
-    }
 }
